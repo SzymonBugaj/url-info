@@ -22,9 +22,10 @@ def result(request):
     report = Report()
 
     words = words_in_text(soup)
+    page_size = len(content)/1000 + "K"
   
     report.title = soup.title.text
-    report.page_size = f"{len(content)/1000} K"
+    report.page_size = page_size
     report.word_count = len(words)
     report.meta_tags = set(meta_tags(soup))
     report.unique_words_count = len(set(words))
