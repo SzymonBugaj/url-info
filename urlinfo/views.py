@@ -22,7 +22,7 @@ def result(request):
     report = Report()
 
     words = words_in_text(soup)
-    page_size = len(content)/1000 + "K"
+    page_size = f"{len(content)/1000} K"
   
     report.title = soup.title.text
     report.page_size = page_size
