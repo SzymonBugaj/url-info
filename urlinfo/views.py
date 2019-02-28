@@ -40,7 +40,7 @@ def result(request):
 
 def words_in_text(soup):
     words = []
-    tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li', 'ul',] #['div']
+    tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li', 'ul', 'div']
     for tag in tags:
         for words_in_tag in soup.find_all(tag):
             paragraph = delete_punctuation(words_in_tag.text)
