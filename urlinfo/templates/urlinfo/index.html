@@ -1,0 +1,15 @@
+{% load static %}
+<html>
+    <head>
+        <title>Zadanie - analiza url</title>
+    </head>
+    <body>
+    
+    <form method="POST" class="post-form" action="result/">
+    {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="save btn btn-default">Analizuj</button>
+    </form>
+
+    </body>
+</html>

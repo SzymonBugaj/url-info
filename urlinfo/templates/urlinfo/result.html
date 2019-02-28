@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+    <head>
+        <title>Zadanie - analiza url</title>
+    </head>
+    <body>
+        <p><b> analizowany link: </b>{{ Report.main_link }} </p>
+        <p><b> tytuł: </b>{{ Report.title }}</p>
+        <p><b> meta tagi: </b>{{ Report.meta_tags }} </p>
+        <p><b> rozmiar strony: </b>{{ Report.page_size }}</p>
+        <p><b> liczba słów: </b>{{ Report.word_count }}</p>
+        <p><b> liczba unikalnych słów: </b>{{ Report.unique_words_count }}</p>
+        <p><b> 5 najpopularniejszych słów: </b>{{ Report.common_words }}</p>
+        <p><b> słowa kluczowe: </b>{{ Report.keywords }}</p>
+        <p><b> słowa kluczowe, których nie ma w tekście: </b>{{ Report.keywords_not_in_content }}</p>
+        <p><b> linki: </b>
+            {% for name, link in Report.links.items %}
+                <br />
+                {{ name }} - {{ link }} 
+            {% endfor %}
+        </p>
+    </body>
+</html>
