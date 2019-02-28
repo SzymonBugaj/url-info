@@ -33,10 +33,9 @@ def result(request):
     report.keywords = set(keywords_in_text(soup))
     report.keywords_not_in_content = keywords_not_in_content(words, report)
     report.main_link = url
-    linki = links(soup)
     report.links = links(soup)
 
-    return render(request, 'urlinfo/result.html', {'Report': report, 'linki' : linki})
+    return render(request, 'urlinfo/result.html', {'Report': report})
 
 def words_in_text(soup):
     words = []
