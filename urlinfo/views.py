@@ -6,6 +6,9 @@ from urllib.request import urlopen
 import urllib.request
 import collections
 import re
+from django.views import generic
+from django.urls import reverse
+from .forms import LinkForm
 
 # Create your views here.
 
@@ -18,8 +21,8 @@ def result(request):
 
     content = urlopen(url).read()
     soup = BeautifulSoup(content)
-    report = Report()
 
+    report = Report()
     report.title = soup.title.text
     report.words = report.words_in_text(soup)
     report.word_count = len(report.words)
@@ -27,12 +30,13 @@ def result(request):
     report.unique_words_count = len(set(report.words))
     report.page_size = f"{len(content)/1000} K"
     report.common_words = report.most_common_words()
-    report.keywords = report.keywords_in_text(soup)
+    report.keywords = report.find_keywords(soup)
     report.keywords_not_in_content = report.find_keywords_not_in_text(soup)
     report.main_link = url
     report.links = report.find_links(soup, url)
 
-    return render(request, 'urlinfo/result.html', {'Report': report})
+    return render(request, 'urlinfo/result.html', {'Report': report, 'url' : url})
+
 
 class Report():
     main_link = ""
@@ -49,7 +53,7 @@ class Report():
     page_size = ""
     
     def words_in_text(self, soup):
-        self.words = soup.body.text.split()
+        self.words = soup.body.get_text().split()
         self.words = self.delete_punctuation_and_nums(self.words)
         return self.words
 
@@ -69,7 +73,7 @@ class Report():
         self.common_words = self.common_words
         return self.common_words
 
-    def keywords_in_text(self, soup):
+    def find_keywords(self, soup):
         keyword = ""
         for tag in soup.find_all('meta'):
             if tag.get('name') == "keywords" or tag.get('name') == "Keywords":
