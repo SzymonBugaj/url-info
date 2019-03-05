@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from .forms import LinkForm
-from .models import Report
 from django.shortcuts import redirect
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
@@ -21,69 +20,85 @@ def result(request):
     soup = BeautifulSoup(content)
     report = Report()
 
-    words = words_in_text(soup)
-    page_size = f"{len(content)/1000} K"
-  
     report.title = soup.title.text
-    report.page_size = page_size
-    report.word_count = len(words)
-    report.meta_tags = set(meta_tags(soup))
-    report.unique_words_count = len(set(words))
-    report.common_words = most_common(words, report)
-    report.keywords = set(keywords_in_text(soup))
-    report.keywords_not_in_content = keywords_not_in_content(words, report)
+    report.words = report.words_in_text(soup)
+    report.word_count = len(report.words)
+    report.meta_tags = report.find_meta_tags(soup)
+    report.unique_words_count = len(set(report.words))
+    report.page_size = f"{len(content)/1000} K"
+    report.common_words = report.most_common_words()
+    report.keywords = report.keywords_in_text(soup)
+    report.keywords_not_in_content = report.find_keywords_not_in_text(soup)
     report.main_link = url
-    report.links = links(soup)
+    report.links = report.find_links(soup, url)
 
     return render(request, 'urlinfo/result.html', {'Report': report})
 
-def words_in_text(soup):
-    words = []
-    tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li', 'ul', 'div']
-    for tag in tags:
-        for words_in_tag in soup.find_all(tag):
-            paragraph = delete_punctuation(words_in_tag.text)
-            words += paragraph.split()
-    return words
-
-def meta_tags(soup):
+class Report():
+    main_link = ""
+    title = ""
     meta_tags = []
-    for tag in soup.find_all('meta'):
-        if tag.get('name') != None and tag.get('name') not in meta_tags:
-            meta_tags.append(tag.get('name'))
-    return meta_tags
+    words = []
+    page_size = ""
+    word_count = 0
+    unique_words_count = 0
+    common_words = []
+    keywords_not_in_text = []
+    keywords_list = []
+    links = []
+    page_size = ""
+    
+    def words_in_text(self, soup):
+        self.words = soup.body.text.split()
+        self.words = self.delete_punctuation_and_nums(self.words)
+        return self.words
 
-def most_common(paragraph, report):
-    common_words = collections.Counter(paragraph).most_common(5)
-    report.common_words.clear()
-    for word in common_words:
-        if word[0] not in report.common_words:
-            report.common_words.append(word[0])
-    return report.common_words
+    def find_meta_tags(self, soup):
+        for tag in soup.find_all('meta'):
+            if tag.get('name') != None and tag.get('name') not in self.meta_tags:
+                self.meta_tags.append(tag.get('name'))
+        self.meta_tags = set(self.meta_tags)
+        return self.meta_tags
 
-def keywords_in_text(soup):
-    keywords = ""
-    for tag in soup.find_all('meta'):
-        if tag.get('name') == "keywords" or tag.get('name') == "Keywords":
-            keywords += tag.get('content')
-    keywords_list = set(keywords.split(','))
-    return keywords_list
+    def most_common_words(self):
+        common_words = collections.Counter(self.words).most_common(6)
+        self.common_words.clear()
+        for word in common_words:
+            if word not in self.common_words and len(word[0]) > 0 and len(self.common_words) < 5:
+                self.common_words.append(word[0])
+        self.common_words = self.common_words
+        return self.common_words
 
-def keywords_not_in_content(words, report):
-    report.keywords_not_in_content.clear()
-    for keyword in report.keywords:
-        if keyword not in words:
-            report.keywords_not_in_content.append(keyword)
-    return report.keywords_not_in_content
+    def keywords_in_text(self, soup):
+        keyword = ""
+        for tag in soup.find_all('meta'):
+            if tag.get('name') == "keywords" or tag.get('name') == "Keywords":
+                self.keywords_list = tag.get('content').replace(' ', '').split(',')
+        #self.keywords_list = set(self.keywords_list.split(','))
+        return self.keywords_list
 
-def links(soup):
-    links = {}
-    for link in soup.find_all('a', attrs={'href': re.compile("")}):
-        #links.append(link.get_text())
-        links.update({link.get_text() : link.get('href')})
-    return links
+    def find_keywords_not_in_text(self, soup):
+        self.keywords_not_in_text.clear()
+        for keyword in self.keywords_list:
+            if keyword not in soup.body.text and keyword not in self.keywords_not_in_text:
+                self.keywords_not_in_text.append(keyword)
+        return self.keywords_not_in_text
 
-def delete_punctuation(paragraph):
-    paragraph = re.sub(r'[^\w\s]','',paragraph)
-    paragraph = paragraph.lower()
-    return paragraph
+    def find_links(self, soup, url):
+        self.links.clear()
+        for link in soup.findAll('a'):
+            url2 = link.get('href')
+            #if urllib.parse.urljoin(self.main_link, url2) not in self.links:
+            self.links.append(urllib.parse.urljoin(self.main_link, url2))
+        return self.links
+
+    def delete_punctuation_and_nums(self, soup):
+        words_without_punct_and_nums = []
+        for word in range(len(self.words)):
+            self.words[word] = re.sub(r'[^\w\s]','',self.words[word])
+            self.words[word] = self.words[word].lower()
+            try:
+                float(self.words[word])
+            except:
+                words_without_punct_and_nums.append(self.words[word])
+        return words_without_punct_and_nums
