@@ -45,7 +45,7 @@ class Report():
     common_words = []
     keywords_not_in_text = []
     keywords_list = []
-    links = []
+    links = {}
     page_size = ""
     
     def words_in_text(self, soup):
@@ -88,8 +88,9 @@ class Report():
         self.links.clear()
         for link in soup.findAll('a'):
             url2 = link.get('href')
+            url_name = link.string
             #if urllib.parse.urljoin(self.main_link, url2) not in self.links:
-            self.links.append(urllib.parse.urljoin(self.main_link, url2))
+            self.links.update({url_name : urllib.parse.urljoin(self.main_link, url2)})
         return self.links
 
     def delete_punctuation_and_nums(self, soup):

@@ -17,9 +17,9 @@
         <p><b> słowa kluczowe: </b>{{ Report.keywords }}</p>
         <p><b> słowa kluczowe, których nie ma w tekście: </b>{{ Report.keywords_not_in_content }}</p>
         <p><b> linki: </b>
-            {% for link in Report.links %}
+            {% for name, link in Report.links.items %}
                 <br />
-                <a href={{ link }}>{{link}}</a>
+                {{name}} - <a href={{ link }}>{{link}}</a>
             {% endfor %}
         </p>
     </body>
