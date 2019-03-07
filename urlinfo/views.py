@@ -1,103 +1,115 @@
 from django.shortcuts import render
 from .forms import LinkForm
-from django.shortcuts import redirect
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 import urllib.request
 import collections
 import re
-from django.views import generic
-from django.urls import reverse
-from .forms import LinkForm
+from django.http import HttpResponse, HttpResponseRedirect
+from django.views.generic import FormView, TemplateView
+from django.urls import reverse_lazy
 
 # Create your views here.
 
-def index(request):
-    form = LinkForm()
-    return render(request, 'urlinfo/index.html', {'form': form})
+class UrlView(FormView):
+    form_class = LinkForm
+    template_name = "urlinfo/index.html"
+    success_url ='results/'
 
-def result(request):
-    url = request.POST.get('link')
-
-    content = urlopen(url).read()
-    soup = BeautifulSoup(content)
-
-    report = Report()
-    report.title = soup.title.text
-    report.words = report.words_in_text(soup)
-    report.word_count = len(report.words)
-    report.meta_tags = report.find_meta_tags(soup)
-    report.unique_words_count = len(set(report.words))
-    report.page_size = f"{len(content)/1000} K"
-    report.common_words = report.most_common_words()
-    report.keywords = report.find_keywords(soup)
-    report.keywords_not_in_content = report.find_keywords_not_in_text(soup)
-    report.main_link = url
-    report.links = report.find_links(soup, url)
-
-    return render(request, 'urlinfo/result.html', {'Report': report, 'url' : url})
-
-
-class Report():
-    main_link = ""
-    title = ""
-    meta_tags = []
-    words = []
-    page_size = ""
-    word_count = 0
-    unique_words_count = 0
-    common_words = []
-    keywords_not_in_text = []
-    keywords_list = []
-    links = {}
-    page_size = ""
+    print("---------- UrlView")
+    def form_valid(self, form):
+        print("---------- form_valid")
+        link = form.cleaned_data['link']
+        if link is not None:
+            
+        else:
+            return HttpResponse("brak linka")
+        return super().form_valid(form)
     
-    def words_in_text(self, soup):
-        self.words = soup.body.get_text().split()
-        self.words = self.delete_punctuation_and_nums(self.words)
+    def get_success_url(self, **kwargs):
+        link = "https://www.instalki.pl/"
+        context = {'link': link}
+        reverse_lazy(link, context)
+        
+
+class ResultView(TemplateView):
+    template_name = "urlinfo/results.html"
+    print("---------- ResultView")
+
+    def get_context_data(self, **kwargs):
+        print("---------- get_context_data")
+        url = "https://www.instalki.pl/"
+        result_dict = Report(url)
+        context = super().get_context_data(**kwargs)
+        context['Report'] = result_dict
+        print(f"======{kwargs}")
+        return context
+
+class Report:
+    def __init__(self, url):
+        self.url = url
+        self.soup = self.boil_soup()
+        self.title = self.soup.title.text
+        self.meta_tags = self.find_meta_tags()
+        self.words = self.words_in_text()
+        self.page_size = f"{len(urlopen(self.url).read())/1000} K"
+        self.word_count = len(self.words)
+        self.unique_words_count = len(set(self.words))
+        self.common_words = self.most_common_words()
+        self.keywords_list = self.find_keywords()
+        self.keywords_not_in_text = self.find_keywords_not_in_text()
+        self.links = self.find_links()
+
+    def boil_soup(self):
+        content = urlopen(self.url).read()
+        self.soup = BeautifulSoup(content)
+        return self.soup
+
+    def words_in_text(self):
+        self.words = self.soup.body.get_text().split()
+        self.words = self.delete_punctuation_and_nums()
         return self.words
 
-    def find_meta_tags(self, soup):
-        for tag in soup.find_all('meta'):
-            if tag.get('name') != None and tag.get('name') not in self.meta_tags:
-                self.meta_tags.append(tag.get('name'))
-        self.meta_tags = set(self.meta_tags)
+    def find_meta_tags(self):
+        meta_tags = []
+        for tag in self.soup.find_all('meta'):
+            if tag.get('name') != None and tag.get('name') not in meta_tags:
+                meta_tags.append(tag.get('name'))
+        self.meta_tags = set(meta_tags)
         return self.meta_tags
 
     def most_common_words(self):
         common_words = collections.Counter(self.words).most_common(6)
-        self.common_words.clear()
+        self.common_words = []
         for word in common_words:
             if word not in self.common_words and len(word[0]) > 0 and len(self.common_words) < 5:
                 self.common_words.append(word[0])
-        self.common_words = self.common_words
         return self.common_words
 
-    def find_keywords(self, soup):
-        keyword = ""
-        for tag in soup.find_all('meta'):
+    def find_keywords(self):
+        self.keywords_list = []
+        for tag in self.soup.find_all('meta'):
             if tag.get('name') == "keywords" or tag.get('name') == "Keywords":
-                self.keywords_list = tag.get('content').replace(' ', '').split(',')
-        #self.keywords_list = set(self.keywords_list.split(','))
+                self.keywords_list = tag.get('content').split(',')
         return self.keywords_list
 
-    def find_keywords_not_in_text(self, soup):
-        self.keywords_not_in_text.clear()
+    def find_keywords_not_in_text(self):
+        self.keywords_not_in_text = []
         for keyword in self.keywords_list:
-            if keyword not in soup.body.text and keyword not in self.keywords_not_in_text:
+            if keyword not in self.soup.body.text and keyword not in self.keywords_not_in_text:
                 self.keywords_not_in_text.append(keyword)
         return self.keywords_not_in_text
-
-    def find_links(self, soup, url):
-        self.links.clear()
-        for link in soup.findAll('a'):
+    
+    def find_links(self):
+        self.links = {}
+        for link in self.soup.findAll('a'):
             url2 = link.get('href')
             url_name = link.string
             #if urllib.parse.urljoin(self.main_link, url2) not in self.links:
-            self.links.update({url_name : urllib.parse.urljoin(self.main_link, url2)})
+            self.links.update({url_name : urllib.parse.urljoin(self.url, url2)})
         return self.links
 
-    def delete_punctuation_and_nums(self, soup):
+    def delete_punctuation_and_nums(self):
         words_without_punct_and_nums = []
         for word in range(len(self.words)):
             self.words[word] = re.sub(r'[^\w\s]','',self.words[word])

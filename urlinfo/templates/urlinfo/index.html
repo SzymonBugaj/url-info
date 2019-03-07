@@ -1,15 +1,12 @@
-{% load static %}
-<html>
-    <head>
-        <title>Zadanie - analiza url</title>
-    </head>
-    <body>
+{% extends 'urlinfo\base.html' %}
     
-    <form method="POST" class="post-form" action="result/">
-    {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="save btn btn-default">Analizuj</button>
-    </form>
+    {% block form %}
+        <form method="POST" class="post-form">
+        {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="save btn btn-default">Analizuj</button>
+        </form>
+    {% endblock %}
 
     </body>
 </html>
