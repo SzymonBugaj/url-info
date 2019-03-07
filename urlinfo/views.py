@@ -1,49 +1,51 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .forms import LinkForm
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 import urllib.request
 import collections
 import re
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.views.generic import FormView, TemplateView
 from django.urls import reverse_lazy
+from django.contrib import messages
+from django.contrib.messages import get_messages
 
 # Create your views here.
-
 class UrlView(FormView):
-    form_class = LinkForm
-    template_name = "urlinfo/index.html"
-    success_url ='results/'
+   form_class = LinkForm
+   template_name = "urlinfo/index.html"
+   success_url = 'result'
+   url = None
 
-    print("---------- UrlView")
-    def form_valid(self, form):
-        print("---------- form_valid")
-        link = form.cleaned_data['link']
-        if link is not None:
-            
-        else:
-            return HttpResponse("brak linka")
-        return super().form_valid(form)
-    
-    def get_success_url(self, **kwargs):
-        link = "https://www.instalki.pl/"
-        context = {'link': link}
-        reverse_lazy(link, context)
-        
+   def get_success_url(self):
+        messages.info(self.request, self.url)
+        return reverse_lazy(self.success_url)
+
+   def form_valid(self, form, **kwargs):
+        self.url = form.cleaned_data['link']
+        return HttpResponseRedirect(self.get_success_url())
 
 class ResultView(TemplateView):
-    template_name = "urlinfo/results.html"
-    print("---------- ResultView")
+   template_name = "urlinfo/results.html"
+   url = None
 
-    def get_context_data(self, **kwargs):
-        print("---------- get_context_data")
-        url = "https://www.instalki.pl/"
-        result_dict = Report(url)
+   def get(self, request, *args, **kwargs):
+        storage = get_messages(self.request)
+        try:
+            self.url = [message for message in storage][0]
+        except IndexError:
+            return redirect('base')
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
+
+   def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['Report'] = result_dict
-        print(f"======{kwargs}")
+        result_dict = Report(str(self.url))
+        #context['report'] = result_dict
+        context['report'] = result_dict.__dict__
         return context
+
 
 class Report:
     def __init__(self, url):
@@ -105,7 +107,6 @@ class Report:
         for link in self.soup.findAll('a'):
             url2 = link.get('href')
             url_name = link.string
-            #if urllib.parse.urljoin(self.main_link, url2) not in self.links:
             self.links.update({url_name : urllib.parse.urljoin(self.url, url2)})
         return self.links
 

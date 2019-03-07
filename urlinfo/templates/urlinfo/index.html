@@ -1,12 +1,12 @@
-{% extends 'urlinfo\base.html' %}
-    
-    {% block form %}
-        <form method="POST" class="post-form">
-        {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="save btn btn-default">Analizuj</button>
-        </form>
-    {% endblock %}
+{% extends 'urlinfo/base.html' %}
 
-    </body>
+   {% block form %}
+       <form method="POST" class="post-form">
+       {% csrf_token %}
+           {{ form.as_p }}
+           <button type="submit" class="save btn btn-default">Analizuj</button>
+       </form>
+   {% endblock %}
+
+   </body>
 </html>

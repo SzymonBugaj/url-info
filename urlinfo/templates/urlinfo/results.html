@@ -1,5 +1,17 @@
-{% extends 'urlinfo\base.html' %}
-
+{% extends 'urlinfo/base.html' %}
     {% block content %}
-        <h2> {{ link }} </h2>
+        <h2> Analiza url: </h2>
+        {% for key, value in report.items %}
+            {% if key != 'soup' and key != 'words' and key != 'links'%}
+                {{ key }} - {{ value }}
+                </br>
+            {% endif %}
+            {% if key == 'links' %}
+                {{key}}:
+                {% for name, link in report.links.items %}
+                    <br />
+                    {{name}} - <a href={{ link }}>{{ link }}</a>
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
     {% endblock %}
